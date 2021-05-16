@@ -50,6 +50,14 @@ def get_Escuela(bbdd="isst") -> tuple:
     return _executeRetrieveOne("SELECT * FROM ESCUELA", bbdd, returnResult=True)
 
 
+def get_Professor(email, bbdd="isst") -> list:
+    return _executeRetrieveAll("""SELECT PROFESOR.nombre, PROFESOR.email, DEPARTAMENTO.nombre
+                                FROM PROFESOR
+                                INNER JOIN DEPARTAMENTO
+                                on PROFESOR.departamento_id = DEPARTAMENTO.id
+                                where email = '{}'""".format(email), bbdd, returnResult=True)
+
+
 def get_allAlumnos(bbdd="isst") -> list:
     return _executeRetrieveAll("SELECT * FROM ALUMNO", bbdd, returnResult=True)
 
@@ -89,6 +97,17 @@ def get_Subjects(email, bbdd="isst") -> list:
                                     INNER JOIN DEPARTAMENTO
                                     on SUBJECT.departamento_id = DEPARTAMENTO.id
                                     Where alumno_id = '{}'""".format(id_alumno), bbdd, returnResult=True)
+    return subjects
+
+
+def get_SubjectsProfesor(email, bbdd="isst") -> list:
+    id_alumno = _executeRetrieveOne("SELECT id FROM PROFESOR Where email = '{}'".format(
+        email), bbdd, returnResult=True)[0]
+    subjects = _executeRetrieveAll("""SELECT DISTINCT SUBJECT.nombre, SUBJECT.acronimo, DEPARTAMENTO.nombre, SUBJECT.curso
+                                    FROM SUBJECT 
+                                    INNER JOIN DEPARTAMENTO
+                                    on SUBJECT.departamento_id = DEPARTAMENTO.id
+                                    Where profesor_id = '{}'""".format(id_alumno), bbdd, returnResult=True)
     return subjects
 
 

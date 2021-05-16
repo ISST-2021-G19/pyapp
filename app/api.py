@@ -1,14 +1,16 @@
 import hashlib
 
 from pydantic.typing import NoneType
+from requests.sessions import Request
 from app.model import PostSchema, UserLoginSchema
 from app.auth.auth_handler import signJWT
-from fastapi import FastAPI, HTTPException, Body, Depends
+from fastapi import FastAPI, HTTPException, Body, Depends, Header
 from app.auth.auth_bearer import JWTBearer
 from app.auth.auth_handler import signJWT, decodeJWT
 from app.auth.auth_check import getEncodedPassword
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import *
+from typing import Optional
 import app.settings
 
 
@@ -58,20 +60,33 @@ async def user_login(user: UserLoginSchema = Body(...)):
 
 
 @app.get("/user/profile", dependencies=[Depends(JWTBearer())], tags=["posts"])
-async def alumno() -> dict:
-    email = users[0]['email']
-    alumno = get_Alumno(email, bbdd="isst")
-    return {
-        "name": alumno[1].split(" ")[0],
-        "surname": alumno[1].split(" ")[1],
-        "email": alumno[2]
-    }
+async def alumno(Authorization: Optional[List[str]] = Header(None)) -> dict:
+    token = Authorization[0].replace("Bearer ", "")
+    email = decodeJWT(token)['user_id']
+    if "@upm.es" in email:
+        profesorList = get_Professor(email)[0]
+        return{
+            "name": profesorList[0],
+            "email": profesorList[1],
+            "departamento": profesorList[2]
+        }
+    else:
+        alumno = get_Alumno(email, bbdd="isst")
+        return {
+            "name": alumno[1].split(" ")[0],
+            "surname": alumno[1].split(" ")[1],
+            "email": alumno[2]
+        }
 
 
 @app.get("/subjects", dependencies=[Depends(JWTBearer())], tags=["subject"])
-async def alumno() -> dict:
-    email = users[0]['email']
-    subjects = get_Subjects(email, bbdd="isst")
+async def subjects(Authorization: Optional[List[str]] = Header(None)) -> dict:
+    token = Authorization[0].replace("Bearer ", "")
+    email = decodeJWT(token)['user_id']
+    if "@upm.es" in email:
+        subjects = get_SubjectsProfesor(email, bbdd="isst")
+    else:
+        subjects = get_Subjects(email, bbdd="isst")
     objectarray = []
     for subject in subjects:
         objectarray.append({
@@ -126,8 +141,9 @@ async def getTraits(subjectid: str) -> dict:
 
 
 @app.post("/surveys", dependencies=[Depends(JWTBearer())], tags=["survey"])
-async def postSurvey(respuesta=Body(...)):
-    email = users[0]['email']
+async def postSurvey(respuesta=Body(...), Authorization: Optional[List[str]] = Header(None)):
+    token = Authorization[0].replace("Bearer ", "")
+    email = decodeJWT(token)['user_id']
     subject = respuesta["subjectId"]
     professor = respuesta["professor"].lstrip('0')
     listAnswers = [(k, v) for k, v in respuesta['answers'].items()]
