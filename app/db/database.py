@@ -131,6 +131,37 @@ def get_Traits(subjectId=None, bbdd="isst") -> list:
         "SELECT * FROM TRAITS", bbdd, returnResult=True)
     return surveys
 
+
+def get_AnsweredSurveyList(email: str, subject: str, bbdd="isst") -> list:
+    profesorId = _executeRetrieveAll("""SELECT PROFESOR.id FROM PROFESOR
+                                        where email = '{}'""".format(email), bbdd, returnResult=True)[0][0]
+    subjectId = _executeRetrieveAll("""SELECT DISTINCT SUBJECT.id FROM SUBJECT 
+                                    Where profesor_id = '{}' and acronimo = '{}'""".format(profesorId, subject), bbdd, returnResult=True)[0][0]
+
+    return _executeRetrieveAll("""SELECT * FROM ENCUESTA
+                                Where profesor_id = '{}' and subject_id = '{}'""".format(profesorId, subjectId), bbdd, returnResult=True)
+
+
+def get_AnswersbyId(SurveyId=None, bbdd="isst") -> list:
+    return _executeRetrieveAll("""select respuesta.respuesta, respuesta.pregunta_id, preguntaencuesta.texto
+                                from respuesta
+                                INNER JOIN preguntaencuesta
+                                on respuesta.pregunta_id = preguntaencuesta.id
+                                Where encuesta_id = '{}'""".format(SurveyId), bbdd, returnResult=True)
+
+
+def get_TraitsbyId(SurveyId=None, bbdd="isst") -> list:
+    return _executeRetrieveAll("""select respuestatraits.respuesta, traits.label
+                                from respuestatraits
+                                INNER JOIN traits
+                                on respuestatraits.respuesta = traits.id
+                                Where encuesta_id = '{}'""".format(SurveyId), bbdd, returnResult=True)
+
+
+def get_CommentsbyId(SurveyId=None, bbdd="isst") -> list:
+    return _executeRetrieveAll("""select respuestacomentario.respuesta
+                                from respuestacomentario   
+                                Where id = '{}'""".format(SurveyId), bbdd, returnResult=True)
 # Post
 
 

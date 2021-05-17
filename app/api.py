@@ -11,6 +11,7 @@ from app.auth.auth_check import getEncodedPassword
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import *
 from typing import Optional
+import collections
 import app.settings
 
 
@@ -161,3 +162,82 @@ async def postSurvey(respuesta=Body(...), Authorization: Optional[List[str]] = H
         }
     except:
         raise HTTPException(status_code=500, detail="Insersion with errors")
+
+
+@app.get("/stats/{subjectid}", dependencies=[Depends(JWTBearer())], tags=["subject"])
+async def getDataProfessor(subjectid: str, Authorization: Optional[List[str]] = Header(None)) -> dict:
+    token = Authorization[0].replace("Bearer ", "")
+    email = decodeJWT(token)['user_id']
+    questions = []
+    traits = []
+    uniqueAnswers = []
+    answersList = []
+    traitList = []
+    commentsList = []
+    try:
+        listAnsweredSurveys = get_AnsweredSurveyList(
+            email, subjectid, "isst")
+        subjectIdNum = listAnsweredSurveys[0][2]
+        profesorId = listAnsweredSurveys[0][3]
+        for answeredSurvey in listAnsweredSurveys:
+            for value in get_AnswersbyId(answeredSurvey[0]):
+                uniqueAnswers.append(value[1])
+                answersList.append(value)
+            for value in get_TraitsbyId(answeredSurvey[0]):
+                traitList.append(value)
+            try:
+                commentsList.append(get_CommentsbyId(answeredSurvey[0])[0][0])
+            except:
+                pass
+        # questions
+        uniqueAnswers = list(set(uniqueAnswers))
+        for code in uniqueAnswers:
+            sum0 = 0
+            sum1 = 0
+            sum2 = 0
+            sum3 = 0
+            sum4 = 0
+            sum5 = 0
+            for answer in answersList:
+                if answer[1] == code:
+                    qtext = answer[2]
+                    if answer[0] == '0':
+                        sum0 += 1
+                    if answer[0] == '1':
+                        sum1 += 1
+                    if answer[0] == '2':
+                        sum2 += 1
+                    if answer[0] == '3':
+                        sum3 += 1
+                    if answer[0] == '4':
+                        sum4 += 1
+                    if answer[0] == '5':
+                        sum5 += 1
+            else:
+                infoquestion = {
+                    "questionId": code,
+                    "cuestionText": qtext,
+                    "dataset": [[0, sum0], [1, sum1], [2, sum2], [3, sum3], [4, sum4], [5, sum5]]
+                }
+                questions.append(infoquestion)
+
+        # traits
+        traitListunique = list(set(traitList))
+        for trait in traitListunique:
+            infotrait = {
+                "traitId": trait[0],
+                "traitLabel": trait[1],
+                "count": traitList.count(trait)
+            }
+            traits.append(infotrait)
+
+        returnItem = {
+            "subjectId": subjectid,
+            "professorId": profesorId,
+            "questions": questions,
+            "traits": infotrait,
+            "comments": commentsList
+        }
+        return returnItem
+    except:
+        raise HTTPException(status_code=404, detail="Info Not Found")
