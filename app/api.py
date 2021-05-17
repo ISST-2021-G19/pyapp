@@ -11,7 +11,6 @@ from app.auth.auth_check import getEncodedPassword
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import *
 from typing import Optional
-import collections
 import app.settings
 
 
@@ -216,7 +215,7 @@ async def getDataProfessor(subjectid: str, Authorization: Optional[List[str]] = 
             else:
                 infoquestion = {
                     "questionId": code,
-                    "cuestionText": qtext,
+                    "questionText": qtext,
                     "dataset": [[0, sum0], [1, sum1], [2, sum2], [3, sum3], [4, sum4], [5, sum5]]
                 }
                 questions.append(infoquestion)
@@ -234,8 +233,9 @@ async def getDataProfessor(subjectid: str, Authorization: Optional[List[str]] = 
         returnItem = {
             "subjectId": subjectid,
             "professorId": profesorId,
+            "degree": "GTIST",
             "questions": questions,
-            "traits": infotrait,
+            "traits": traits,
             "comments": commentsList
         }
         return returnItem
